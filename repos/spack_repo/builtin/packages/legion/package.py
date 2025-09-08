@@ -56,6 +56,11 @@ class Legion(CMakePackage, CudaPackage, ROCmPackage):
 
     depends_on("realm", when="@master")
     depends_on("realm+kokkos", when="@master +kokkos")
+    depends_on("realm+hwloc", when="@master +hwloc")
+    depends_on("realm+openmp", when="@master +openmp")
+    depends_on("realm+cuda", when="@master +cuda")
+    depends_on("realm+rocm", when="@master +rocm")
+    depends_on("realm+cuda_unsupported_compiler", when="@master +cuda_unsupported_compiler")
 
     # TODO: Need to spec version of MPI v3 for use of the low-level MPI transport
     # layer. At present the MPI layer is still experimental and we discourge its
@@ -99,6 +104,7 @@ class Legion(CMakePackage, CudaPackage, ROCmPackage):
             f"kokkos@3.3.01:+cuda+cuda_lambda~wrapper cuda_arch={arch}",
             when=f"@:25.06.0,stable +kokkos+cuda cuda_arch={arch} %clang",
         )
+        depends_on(f"realm cuda_arch={arch}", when=f"@master +cuda cuda_arch={arch}")
 
     depends_on("kokkos@3.3.01:~cuda", when="@:25.06.0,stable +kokkos~cuda")
     depends_on("kokkos@3.3.01:~cuda+openmp", when="@:25.06.0,stable +kokkos+openmp")
@@ -144,6 +150,7 @@ class Legion(CMakePackage, CudaPackage, ROCmPackage):
             f"kokkos@3.3.01:+rocm amdgpu_target={arch}",
             when=f"@:25.06.0,stable +rocm amdgpu_target={arch}",
         )
+        depends_on(f"realm amdgpu_target={arch}", when=f"@master +rocm amdgpu_target={arch}")
 
     depends_on("kokkos@3.3.01:+rocm", when="@:25.06.0,stable +kokkos+rocm")
 
