@@ -36,28 +36,46 @@ class MpichEnvironmentModifications(PackageBase):
         env.unset("F90")
         env.unset("F90FLAGS")
 
+    @property
+    def mpicc(self):
+        if self.spec.has_virtual_dependency("c"):
+            return join_path(self.prefix.bin, "mpicc")
+        return None
+
+    @property
+    def mpicxx(self):
+        if self.spec.has_virtual_dependency("cxx"):
+            return join_path(self.prefix.bin, "mpicxx")
+        return None
+
+    # some derived packages define the "fortran" variant, most don't. checking on the
+    # presence of ~fortran makes us default to add fortran wrappers if the variant is
+    # not declared.
+    @property
+    def mpifc(self):
+        if self.spec.satisfies("~fortran") or not self.spec.has_virtual_dependency("fortran"):
+            return None
+        return join_path(self.prefix.bin, "mpif90")
+
+    def mpif77(self):
+        if self.spec.satisfies("~fortran") or not self.spec.has_virtual_dependency("fortran"):
+            return None
+        return join_path(self.prefix.bin, "mpif77")
+
     def setup_run_environment(self, env: EnvironmentModifications) -> None:
         self.setup_mpi_wrapper_variables(env)
-
-    def setup_dependent_package(self, module, dependent_spec):
-        spec = self.spec
-        spec.mpicc = join_path(self.prefix.bin, "mpicc")
-        spec.mpicxx = join_path(self.prefix.bin, "mpicxx")
-        # Some derived packages define the "fortran" variant, most don't. Checking on the
-        # presence of ~fortran makes us default to add fortran wrappers if the variant is
-        # not declared.
-        if spec.satisfies("~fortran"):
-            return
-        spec.mpifc = join_path(self.prefix.bin, "mpif90")
-        spec.mpif77 = join_path(self.prefix.bin, "mpif77")
 
     def setup_mpi_wrapper_variables(self, env):
         # Because MPI implementations provide compilers, they have to add to
         # their run environments the code to make the compilers available.
-        env.set("MPICC", join_path(self.prefix.bin, "mpicc"))
-        env.set("MPICXX", join_path(self.prefix.bin, "mpicxx"))
-        env.set("MPIF77", join_path(self.prefix.bin, "mpif77"))
-        env.set("MPIF90", join_path(self.prefix.bin, "mpif90"))
+        if self.mpicc:
+            env.set("MPICC", self.mpicc)
+        if self.mpicxx:
+            env.set("MPICXX", self.mpicxx)
+        if self.mpif77:
+            env.set("MPIF77", self.mpif77)
+        if self.mpifc:
+            env.set("MPIF90", self.mpifc)
 
 
 class Mpich(MpichEnvironmentModifications, AutotoolsPackage, CudaPackage, ROCmPackage):
