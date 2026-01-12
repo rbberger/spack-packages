@@ -26,7 +26,7 @@ class Legion(CMakePackage, CudaPackage, ROCmPackage):
     tuning of Legion applications to new architectures."""
 
     homepage = "https://legion.stanford.edu/"
-    git = "https://github.com/StanfordLegion/legion.git"
+    git = "https://gitlab.com/StanfordLegion/legion.git"
 
     license("Apache-2.0")
 
