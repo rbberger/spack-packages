@@ -187,6 +187,7 @@ class Lammps(CMakePackage, CudaPackage, ROCmPackage, PythonExtension):
         "ml-rann": {"when": "@20210702:"},
         "ml-snap": {"when": "@20210702:"},
         "ml-uf3": {"when": "@20240627:"},
+        "ml-mtp": {},
         "mliap": {"when": "@20200630:20210527"},
         "mofff": {"when": "@20210702:"},
         "molecule": {"default": True},
@@ -555,6 +556,25 @@ class Lammps(CMakePackage, CudaPackage, ROCmPackage, PythonExtension):
     )
 
     root_cmakelists_dir = "cmake"
+
+    # experimental ML-MTP package
+    resource(
+        name="lammps-mtp-kokkos",
+        git="https://github.com/RichardZJM/lammps-mtp-kokkos.git",
+        commit="dad4365b57b1935d959986d8665f4c53e5d435ff",
+        destination="spack-resource-lammps-mtp",
+        when="+ml-mtp",
+    )
+
+    def patch(self):
+        if "+ml-mtp" in self.spec:
+            src = self.stage.source_path
+            rsrc = join_path(src, "spack-resource-lammps-mtp", "LAMMPS")
+
+            install_tree(join_path(rsrc, "ML-MTP"), join_path(src, "src"))
+
+            if "+kokkos" in self.spec:
+                install_tree(join_path(rsrc, "KOKKOS"), join_path(src, "src"))
 
     def flag_handler(self, name, flags):
         wrapper_flags = []
