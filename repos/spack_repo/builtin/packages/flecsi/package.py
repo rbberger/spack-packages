@@ -152,7 +152,7 @@ class Flecsi(CMakePackage, CudaPackage, ROCmPackage):
             if self.spec.satisfies("backend=legion"):
                 # CMake pulled in via find_package(Legion) won't work without this
                 options.append(self.define("HIP_PATH", "{0}/hip".format(spec["hip"].prefix)))
-        elif self.spec.satisfies("^kokkos +cuda"):
+        elif self.spec.satisfies("^kokkos +cuda+wrapper"):
             options.append(self.define("CMAKE_CXX_COMPILER", self["kokkos"].kokkos_cxx))
 
         return options
