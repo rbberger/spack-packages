@@ -52,7 +52,7 @@ class Realm(CMakePackage, CudaPackage, ROCmPackage):
         depends_on(f"ucc cuda_arch={arch}", when=f"network=ucx +cuda cuda_arch={arch}")
         depends_on(f"gasnet +cuda cuda_arch={arch}", when=f"network=gasnet +cuda cuda_arch={arch}")
         depends_on(
-            f"kokkos+cuda+cuda_lambda cuda_arch={arch}", when=f"+kokkos+cuda cuda_arch={arch}"
+            f"kokkos+cuda cuda_arch={arch}", when=f"+kokkos+cuda cuda_arch={arch}"
         )
 
     for arch in ROCmPackage.amdgpu_targets:
