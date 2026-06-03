@@ -116,6 +116,7 @@ class Kokkos(CMakePackage, CudaPackage, ROCmPackage):
     devices_variants = {
         "cuda": [False, None, "Whether to build CUDA backend"],
         "openmp": [False, None, "Whether to build OpenMP backend"],
+        "openacc": [False, None, "Whether to build OpenACC backend"],
         "threads": [False, None, "Whether to build the C++ threads backend"],
         "serial": [False, None, "Whether to build serial backend"],
         "rocm": [False, None, "Whether to build HIP backend"],
@@ -240,6 +241,15 @@ class Kokkos(CMakePackage, CudaPackage, ROCmPackage):
         multi=False,
         sticky=True,
         when="+cuda",
+    )
+    variant(
+        "cuda_arch",
+        description="CUDA architecture",
+        values=("none",) + CudaPackage.cuda_arch_values,
+        default="none",
+        multi=False,
+        sticky=True,
+        when="+openacc",
     )
 
     # Since Kokkos supports only one amdgpu_target at a time, the multi-value property is disabled.
