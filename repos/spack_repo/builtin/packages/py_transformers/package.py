@@ -19,6 +19,7 @@ class PyTransformers(PythonPackage):
 
     license("Apache-2.0")
 
+    version("5.12.1", sha256="679ee731c8225347889ad4fb3b2c926a62e9da3b7d284e9d12c791da7272466b")
     version("4.57.0", sha256="d045753f3d93f9216e693cdb168698dfd2e9d3aad1bb72579a5d60ebf1545a8b")
     version("4.48.3", sha256="a5e8f1e9a6430aa78215836be70cecd3f872d99eeda300f41ad6cc841724afdb")
     version("4.46.3", sha256="8ee4b3ae943fe33e82afff8e837f4b052058b07ca9be3cb5b729ed31295f72cc")
