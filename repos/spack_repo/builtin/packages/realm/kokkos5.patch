@@ -1,0 +1,243 @@
+From c7b4137e5878388210d3c55e72e0b816f137ae23 Mon Sep 17 00:00:00 2001
+From: Martin Pokorny <mpokorny@caltech.edu>
+Date: Tue, 7 Apr 2026 14:05:21 -0600
+Subject: [PATCH 1/2] Add support for Kokkos v5; drop support for Kokkos v3
+
+---
+ src/realm/inst_layout.h            |  3 +-
+ src/realm/inst_layout.inl          | 14 +++----
+ src/realm/kokkos/kokkos_interop.cc | 66 +++++-------------------------
+ 3 files changed, 18 insertions(+), 65 deletions(-)
+
+diff --git a/src/realm/inst_layout.h b/src/realm/inst_layout.h
+index a67b535790bd54ceec9d461616765bc1a3557bc1..b7582b95b925dcacfc5a7d79459243d75e74dc29 100644
+--- a/src/realm/inst_layout.h
++++ b/src/realm/inst_layout.h
+@@ -24,6 +24,7 @@
+ #include "realm/serialize.h"
+ 
+ #if defined(REALM_USE_KOKKOS)
++#include <Kokkos_Array.hpp>
+ // we don't want to include Kokkos_View.hpp because it brings in too much
+ //  other stuff, so forward declare the pieces we need to define a templated
+ //  conversion from Realm accessor to Kokkos::View (anything that actually
+@@ -35,8 +36,6 @@ namespace Kokkos {
+   template <unsigned>
+   struct MemoryTraits;
+   struct LayoutStride;
+-  template <class, size_t, class>
+-  struct Array;
+   namespace Experimental {
+     template <class, class...>
+     class OffsetView;
+diff --git a/src/realm/inst_layout.inl b/src/realm/inst_layout.inl
+index 0ee4db69603012a78c7111ed331e3b9ee449fdd1..661a54b0eba1cf2b5a28c79e6e5286bf7eea2ffa 100644
+--- a/src/realm/inst_layout.inl
++++ b/src/realm/inst_layout.inl
+@@ -1428,8 +1428,8 @@ namespace Realm {
+                          Kokkos::MemoryTraits<Kokkos_Unmanaged>>
+         unmanaged_view;
+     // verify our Kokkos_Unmanaged enum was right
+-    static_assert(unmanaged_view::traits::is_managed == 0,
+-                  "incorrect value for Kokkos_Unmanaged!");
++    static_assert(unmanaged_view::memory_traits::is_unmanaged,
++                 "incorrect value for Kokkos_Unmanaged!");
+ 
+     // verify the type and rank of the view match us - technically the type
+     //  part would be caught by Kokkos if we passed an FT *, but the error
+@@ -1438,7 +1438,7 @@ namespace Realm {
+         std::is_same<typename unmanaged_view::value_type, FT>::value ||
+             std::is_same<typename unmanaged_view::non_const_value_type, FT>::value,
+         "base type mismatch between Kokkos view and accessor!");
+-    static_assert(unmanaged_view::Rank == N,
++    static_assert(unmanaged_view::rank == N,
+                   "rank mismatch between Kokkos view and accessor!");
+ 
+     // we're relying on the check above for type safety, so hand the
+@@ -1458,7 +1458,7 @@ namespace Realm {
+       const
+   {
+     typename DeferType<Kokkos::LayoutStride, FT>::type kls;
+-    Kokkos::Array<int64_t, N, void> begins;
++    Kokkos::Array<int64_t, N> begins;
+     uintptr_t base_shifted = base;
+     for(int i = 0; i < N; i++) {
+       // a Kokkos::Experimental::OffsetView uses absolute indexing, but it's
+@@ -1483,8 +1483,8 @@ namespace Realm {
+                          Kokkos::MemoryTraits<Kokkos_Unmanaged>>
+         unmanaged_view;
+     // verify our Kokkos_Unmanaged enum was right
+-    static_assert(unmanaged_view::traits::is_managed == 0,
+-                  "incorrect value for Kokkos_Unmanaged!");
++    static_assert(unmanaged_view::memory_traits::is_unmanaged,
++                 "incorrect value for Kokkos_Unmanaged!");
+ 
+     // verify the type and rank of the view match us - technically the type
+     //  part would be caught by Kokkos if we passed an FT *, but the error
+@@ -1493,7 +1493,7 @@ namespace Realm {
+         std::is_same<typename unmanaged_view::value_type, FT>::value ||
+             std::is_same<typename unmanaged_view::non_const_value_type, FT>::value,
+         "base type mismatch between Kokkos view and accessor!");
+-    static_assert(unmanaged_view::Rank == N,
++    static_assert(unmanaged_view::rank == N,
+                   "rank mismatch between Kokkos view and accessor!");
+ 
+     // we're relying on the check above for type safety, so hand the
+diff --git a/src/realm/kokkos/kokkos_interop.cc b/src/realm/kokkos/kokkos_interop.cc
+index 02373b59ddf70cb8b93a110eca2a1e8763f1798d..5f550f6938363c8d904def579846c3005c0314e4 100644
+--- a/src/realm/kokkos/kokkos_interop.cc
++++ b/src/realm/kokkos/kokkos_interop.cc
+@@ -52,13 +52,6 @@ namespace Kokkos {
+ 
+ #include <Kokkos_Core.hpp>
+ 
+-// during the development of Kokkos 3.7.00, initialization data structures
+-//  were changed - detect the presence of a new header (included indirectly
+-//  via Kokkos_Core.hpp)
+-#ifdef KOKKOS_INITIALIZATION_SETTINGS_HPP
+-#define REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+-#endif
+-
+ #include <stdlib.h>
+ 
+ namespace Realm {
+@@ -128,14 +121,9 @@ namespace Realm {
+       virtual void execute_on_processor(Processor p)
+       {
+         log_kokkos.info() << "doing openmp init on proc " << p;
+-#ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+-        Kokkos::InitializationSettings init_settings;
+-        init_settings.set_num_threads(-1); // todo - get from proc
+-        Kokkos::OpenMP::impl_initialize(init_settings);
+-#else
+-        int thread_count = -1; // todo - get from proc
+-        Kokkos::OpenMP::impl_initialize(thread_count);
+-#endif
++          Kokkos::InitializationSettings init_settings;
++          init_settings.set_num_threads(1);
++          Kokkos::OpenMP::impl_initialize(init_settings);
+         mark_done();
+       }
+     };
+@@ -163,28 +151,13 @@ namespace Realm {
+       {
+         log_kokkos.info() << "doing cuda init on proc " << p;
+ 
+-        ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
+-        assert(impl != nullptr && "invalid processor handle");
+-        assert(impl->kind == Processor::TOC_PROC);
+-        Cuda::GPUProcessor *gpu = checked_cast<Cuda::GPUProcessor *>(impl);
++          ProcessorImpl *impl = get_runtime()->get_processor_impl(p);
++          assert(impl->kind == Processor::TOC_PROC);
++          Cuda::GPUProcessor *gpu = checked_cast<Cuda::GPUProcessor *>(impl);
+ 
+-#ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+-        Kokkos::InitializationSettings init_settings;
+-        init_settings.set_device_id(gpu->gpu->info->index);
+-        init_settings.set_num_devices(1);
+-        Kokkos::Cuda::impl_initialize(init_settings);
+-#else
+-        int cuda_device_id = gpu->gpu->info->index;
+-        int num_instances = 1; // unused in kokkos?
+-
+-        Kokkos::Cuda::impl_initialize(Kokkos::Cuda::SelectDevice(cuda_device_id),
+-                                      num_instances);
+-#endif
+-        {
+-          // some init is deferred until an instance is created
+-          Kokkos::Cuda dummy;
+-        }
+-        mark_done();
++          Kokkos::InitializationSettings init_settings;
++          Kokkos::Cuda::impl_initialize(init_settings);
++          mark_done();
+       }
+     };
+ 
+@@ -224,16 +197,10 @@ namespace Realm {
+         assert(impl->kind == Processor::TOC_PROC);
+         Hip::GPUProcessor *gpu = checked_cast<Hip::GPUProcessor *>(impl);
+ 
+-#ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+         Kokkos::InitializationSettings init_settings;
+         init_settings.set_device_id(gpu->gpu->info->index);
+         init_settings.set_num_devices(1);
+         Kokkos::HIP::impl_initialize(init_settings);
+-#else
+-        int hip_device_id = gpu->gpu->info->index;
+-
+-        Kokkos::HIP::impl_initialize(Kokkos::HIP::SelectDevice(hip_device_id));
+-#endif
+         {
+           // some init is deferred until an instance is created
+           Kokkos::HIP dummy;
+@@ -266,22 +233,14 @@ namespace Realm {
+     {
+       // use Kokkos::Impl::{pre,post}_initialize to allow us to do our own
+       //  execution space initialization
+-#ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+       Kokkos::InitializationSettings kokkos_init_args;
+-#else
+-      Kokkos::InitArguments kokkos_init_args;
+-#endif
+       log_kokkos.info() << "doing general pre-initialization";
+       Kokkos::Impl::pre_initialize(kokkos_init_args);
+ 
+ #ifdef KOKKOS_ENABLE_SERIAL
+       // nothing thread-specific for serial execution space, so just call it
+       //  here
+-#ifdef REALM_USE_KOKKOS_INITIALIZATION_SETTINGS
+       Kokkos::Serial::impl_initialize(kokkos_init_args);
+-#else
+-      Kokkos::Serial::impl_initialize();
+-#endif
+ #endif
+ 
+ #ifdef KOKKOS_ENABLE_OPENMP
+@@ -391,9 +350,8 @@ namespace Realm {
+     REALM_PUBLIC_API void kokkos_finalize(
+         const std::vector<ProcessorImpl *> &local_procs) // needed by librealm.so
+     {
+-#if KOKKOS_VERSION >= 40000
+       Kokkos::Impl::pre_finalize();
+-#endif
++
+       // per processor finalization on the correct threads
+ #ifdef KOKKOS_ENABLE_OPENMP
+       for(std::vector<ProcessorImpl *>::const_iterator it = kokkos_omp_procs.begin();
+@@ -423,11 +381,7 @@ namespace Realm {
+ #endif
+ 
+       log_kokkos.info() << "doing general finalization";
+-#if KOKKOS_VERSION >= 40000
+       Kokkos::Impl::post_finalize();
+-#else
+-      Kokkos::finalize();
+-#endif
+     }
+ 
+   }; // namespace KokkosInterop
+
+From f68b1e7136bf699fa7ade594506ce649ec3a6ec0 Mon Sep 17 00:00:00 2001
+From: Martin Pokorny <mpokorny@caltech.edu>
+Date: Tue, 7 Apr 2026 14:05:34 -0600
+Subject: [PATCH 2/2] Change Realm dependency on OpenMP to be transitive for
+ system OpenMP
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8647d52405576a8b42bad735c09c92e3e91739ee..1fb0b78fd41c95fc5bcefb48fb9dcea8349a65b9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -505,7 +505,7 @@ if(REALM_ENABLE_OPENMP)
+   if(REALM_OPENMP_SYSTEM_RUNTIME)
+     find_package(OpenMP REQUIRED COMPONENTS C CXX)
+     list(APPEND REALM_STATIC_DEPENDS OpenMP)
+-    list(APPEND REALM_LIBRARIES OpenMP::OpenMP_CXX)
++    list(APPEND REALM_PUBLIC_LIBRARIES OpenMP::OpenMP_CXX)
+   endif()
+ endif()
+ 

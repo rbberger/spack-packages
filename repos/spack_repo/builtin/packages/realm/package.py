@@ -74,6 +74,8 @@ class Realm(CMakePackage, CudaPackage, ROCmPackage):
 
     depends_on("papi", when="+papi")
 
+    patch("kokkos5.patch", when="^kokkos@5:")
+
     # A C++ standard variant to work-around some odd behaviors with apple-clang
     # but this might be helpful for other use cases down the road. Realm's
     # current development policy is C++17 or greater so we capture that aspect
