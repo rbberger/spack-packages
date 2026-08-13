@@ -142,6 +142,26 @@ supported, and netmod is ignored if device is ch3:sock.""",
         multi=False,
     )
     variant(
+        "ofi-capability",
+        default="auto",
+        values=(
+            "auto",
+            "cxi",
+            "efa",
+            "psm2",
+            "psm3",
+            "verbs",
+            "sockets",
+            "tcp",
+        ),
+        multi=False,
+        when="device=ch4 netmod=ofi",
+        description=(
+            "OFI capability set for compile-time specialization. "
+            "'auto' uses runtime provider capability detection."
+        ),
+    )
+    variant(
         "pci",
         default=(sys.platform != "darwin"),
         description="Support analyzing devices on PCI bus",
@@ -615,6 +635,9 @@ supported, and netmod is ignored if device is ch3:sock.""",
             device_config += "ucx"
         elif "netmod=ofi" in spec:
             device_config += "ofi"
+            ofi_capability = spec.variants["ofi-capability"].value
+            if ofi_capability != "auto":
+                device_config += f":{ofi_capability}"
         elif "netmod=mxm" in spec:
             device_config += "mxm"
         elif "netmod=tcp" in spec:
