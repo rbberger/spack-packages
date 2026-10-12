@@ -29,9 +29,11 @@ class PortsOfCall(CMakePackage):
     version("1.6.0", commit="58ce1181b2d835bd32673ad70550c9130381f91b", tag="v1.6.0")
     version("1.5.2", commit="5f83ece2b203efb3737cf7c89f3daa29c2642765", tag="v1.5.2")
     version("1.5.1", commit="caf672277b47f0aea15e77fffae8548c6e521ae4", tag="v1.5.1")
-    version("1.4.1", commit="603e5cdf87f0760d6ee90843d304a427d9617ba4", tag="v1.4.1")
-    version("1.4.0", commit="b2b2a0af10ba9b9d76e50dd02eda06199cee958c", tag="v1.4.0")
-    version("1.3.0", commit="4c3d3f7534f6c3d0d303286c936f89b75dbba005", tag="v1.3.0")
+
+    with default_args(deprecated=True):
+        version("1.4.1", commit="603e5cdf87f0760d6ee90843d304a427d9617ba4", tag="v1.4.1")
+        version("1.4.0", commit="b2b2a0af10ba9b9d76e50dd02eda06199cee958c", tag="v1.4.0")
+        version("1.3.0", commit="4c3d3f7534f6c3d0d303286c936f89b75dbba005", tag="v1.3.0")
 
     variant("test", default=False, description="Build tests")
     variant(
