@@ -32,15 +32,17 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
 
     version("main", branch="main")
     version("1.12.1", commit="760ac3f8e106addc13dad8a47b9d4ad75e44ea48", tag="release-1.12.1")
-    version("1.12.0", commit="e32a25bed7b73baa7a5684c0183d2c369e16693c", tag="release-1.12.0")
     version("1.11.1", commit="7365053a5bd59839ac47e6133426620540aca7e3", tag="release-1.11.1")
-    version("1.11.0", commit="c996f6505161618f9ca9663942e0beef738b0ecc", tag="release-1.11.0")
-    version("1.10.0", commit="82df6cff9ca8b16f8468f20b9d1eaeff60ac53c7", tag="release-1.10.0")
-    version("1.9.2", commit="9e7de3eccd610e0654e9a05d673ef7b24d32cf31", tag="release-1.9.2")
-    version("1.9.1", commit="1be18426a2c9c26f969bc14a73b482d5beca0217", tag="release-1.9.1")
-    version("1.9.0", commit="cfb7d4bf9fac557d53793a6717e52377b586d77a", tag="release-1.9.0")
-    version("1.8.0", commit="4f363a371f4896f3304fdc1f5facd52d8a9718c1", tag="release-1.8.0")
-    version("1.7.0", commit="b5d7d8cd5c8525cc9d51a71102a645b9c1df6d6e", tag="release-1.7.0")
+
+    with default_args(deprecated=True):
+        version("1.12.0", commit="e32a25bed7b73baa7a5684c0183d2c369e16693c", tag="release-1.12.0")
+        version("1.11.0", commit="c996f6505161618f9ca9663942e0beef738b0ecc", tag="release-1.11.0")
+        version("1.10.0", commit="82df6cff9ca8b16f8468f20b9d1eaeff60ac53c7", tag="release-1.10.0")
+        version("1.9.2", commit="9e7de3eccd610e0654e9a05d673ef7b24d32cf31", tag="release-1.9.2")
+        version("1.9.1", commit="1be18426a2c9c26f969bc14a73b482d5beca0217", tag="release-1.9.1")
+        version("1.9.0", commit="cfb7d4bf9fac557d53793a6717e52377b586d77a", tag="release-1.9.0")
+        version("1.8.0", commit="4f363a371f4896f3304fdc1f5facd52d8a9718c1", tag="release-1.8.0")
+        version("1.7.0", commit="b5d7d8cd5c8525cc9d51a71102a645b9c1df6d6e", tag="release-1.7.0")
 
     # https://github.com/lanl/singularity-eos/pull/647
     patch(
