@@ -21,10 +21,12 @@ class Spiner(CMakePackage):
     version("main", branch="main")
     version("1.7.0", commit="5ebeb5cf76ce9f65471d888280e74353f63cdccb", tag="v1.7.0")
     version("1.6.4", commit="3c0ea89be32065b3be9f897652acc7a7d81e133a", tag="1.6.4")
-    version("1.6.3", commit="c379f5d2cce9625a60b149192ec43c8cff7b74b1", tag="1.6.3")
-    version("1.6.2", commit="a0f4a214f42fe1e9aeb757f4cdeb7cd2b6eb65f7", tag="1.6.2")
-    version("1.6.1", commit="24df4e52e98ca4b82539016268eec367d5b7d184", tag="1.6.1")
-    version("1.6.0", commit="bf7ab6043d1253c7cad9bf7ba54c48194df730d6", tag="1.6.0")
+
+    with default_args(deprecated=True):
+        version("1.6.3", commit="c379f5d2cce9625a60b149192ec43c8cff7b74b1", tag="1.6.3")
+        version("1.6.2", commit="a0f4a214f42fe1e9aeb757f4cdeb7cd2b6eb65f7", tag="1.6.2")
+        version("1.6.1", commit="24df4e52e98ca4b82539016268eec367d5b7d184", tag="1.6.1")
+        version("1.6.0", commit="bf7ab6043d1253c7cad9bf7ba54c48194df730d6", tag="1.6.0")
 
     # When overriding/overloading varaints, the last variant is always used, except for
     # "when" clauses. Therefore, call the whens FIRST then the non-whens.
