@@ -11,7 +11,6 @@ class PortsOfCall(CMakePackage):
     """Ports of Call: Performance Portability Utilities"""
 
     homepage = "https://github.com/lanl/ports-of-call"
-    url = "https://github.com/lanl/ports-of-call/archive/refs/tags/v3.0.0.tar.gz"
     git = "https://github.com/lanl/ports-of-call.git"
 
     maintainers("rbberger", "Yurlungur")
@@ -19,6 +18,8 @@ class PortsOfCall(CMakePackage):
     license("BSD-3-Clause")
 
     version("main", branch="main")
+    version("3.1.1", commit="5d10ea641de7a6e02d1cc196ae70ee502fefd405", tag="v3.1.1")
+    version("3.1.0", commit="3ee1feac4997cb4cfd668c1e9b18ac5484beae45", tag="v3.1.0")
     version("3.0.0", commit="8af8ca7c4f5c720ef3e814423d02d59d2f0f9f37", tag="v3.0.0")
     version("2.1.0", commit="4caf262ca5d0b4ba7fbca86fd6f67532388309d9", tag="v2.1.0")
     version("2.0.1", commit="a284b6b2d42e70afeb99babb23522c869200d6ea", tag="v2.0.1")
@@ -56,9 +57,15 @@ class PortsOfCall(CMakePackage):
                 "PORTS_OF_CALL_TEST_PORTABILITY_STRATEGY", "test_portability_strategy"
             ),
         ]
-        if self.spec.satisfies("test_portability_strategy=Kokkos ^kokkos+rocm"):
+        if self.spec.satisfies(
+            "test_portability_strategy=Kokkos ^kokkos+rocm"
+        ) and not self.spec.satisfies("^kokkos+rocm %cxx=llvm-amdgpu"):
             args.append(self.define("CMAKE_CXX_COMPILER", self.spec["hip"].hipcc))
             args.append(self.define("CMAKE_C_COMPILER", self.spec["hip"].hipcc))
-        if self.spec.satisfies("test_portability_strategy=Kokkos ^kokkos+cuda"):
-            args.append(self.define("CMAKE_CXX_COMPILER", self["kokkos"].kokkos_cxx))
+        if self.spec.satisfies("%cxx=llvm ^kokkos+cuda~wrapper %cxx=llvm") or self.spec.satisfies(
+            "%cxx=llvm-amdgpu ^kokkos+rocm~wrapper %cxx=llvm-amdgpu"
+        ):
+            # explicitly disable launch compiler in these cases to avoid not getting
+            # Spack wrapper rpaths
+            args.append(self.define("Kokkos_LAUNCH_COMPILER", False))
         return args
