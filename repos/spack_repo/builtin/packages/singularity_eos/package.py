@@ -25,7 +25,6 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
 
     homepage = "https://lanl.github.io/singularity-eos/main/index.html"
     git = "https://github.com/lanl/singularity-eos.git"
-    url = "https://github.com/lanl/singularity-eos/archive/refs/tags/release-1.6.1.tar.gz"
 
     maintainers("rbberger", "Yurlungur")
 
@@ -51,10 +50,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
     )
 
     # https://github.com/lanl/singularity-eos/pull/643
-    patch(
-        "fix-header-only-install.patch",
-        when="@1.9.0:1.11.1",
-    )
+    patch("fix-header-only-install.patch", when="@1.9.0:1.11.1")
 
     # build with kokkos, kokkos-kernels for offloading support
     variant("kokkos", default=False, description="Enable kokkos")
@@ -178,7 +174,7 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
         depends_on("kokkos-kernels" + _flag, when="+kokkos-kernels" + _flag)
 
     depends_on("kokkos+pic", when="+kokkos-kernels")
-    depends_on("kokkos+cuda_lambda", when="+cuda+kokkos")
+    requires("^kokkos+cuda_lambda", when="+cuda+kokkos ^kokkos@4")
 
     for _flag in list(CudaPackage.cuda_arch_values):
         depends_on("kokkos cuda_arch=" + _flag, when="+cuda+kokkos cuda_arch=" + _flag)
@@ -267,11 +263,16 @@ class SingularityEos(CMakePackage, CudaPackage, ROCmPackage):
                     variant_path = join_path(*parts)
                 args.append(self.define("SINGULARITY_VARIANT", variant_path))
 
-        if "+rocm" in self.spec:
+        if "+rocm" in self.spec and not self.spec.satisfies("^kokkos %cxx=llvm-amdgpu"):
             args.append(self.define("CMAKE_CXX_COMPILER", self.spec["hip"].hipcc))
             args.append(self.define("CMAKE_C_COMPILER", self.spec["hip"].hipcc))
-        if "+kokkos+cuda" in self.spec:
-            args.append(self.define("CMAKE_CXX_COMPILER", self["kokkos"].kokkos_cxx))
+
+        if self.spec.satisfies("%cxx=llvm ^kokkos+cuda~wrapper %cxx=llvm") or self.spec.satisfies(
+            "%cxx=llvm-amdgpu ^kokkos+rocm~wrapper %cxx=llvm-amdgpu"
+        ):
+            # explicitly disable launch compiler in these cases to avoid not getting
+            # Spack wrapper rpaths
+            args.append(self.define("Kokkos_LAUNCH_COMPILER", False))
 
         if "+kokkos" in self.spec:
             args.append(
