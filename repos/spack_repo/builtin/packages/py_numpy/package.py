@@ -300,14 +300,12 @@ class PyNumpy(PythonPackage):
             The string "mkl-dynamic-[i]lp64-[seq,tbb,iomp,gomp]"
         """
         lp64_or_ilp64 = "ilp64" if spec.satisfies("+ilp64") else "lp64"
-        if spec.satisfies("threads=none"):
-            threads = "seq"
-        elif spec.satisfies("threads=tbb"):
+        if spec.satisfies("threads=tbb"):
             threads = "tbb"
         elif spec.satisfies("threads=openmp"):
             threads = "gomp" if spec.satisfies("%gcc") else "iomp"
         else:
-            raise InstallError("Unknown 'threads' variant for the Intel MKL library")
+            threads = "seq"
 
         return "mkl-dynamic-" + lp64_or_ilp64 + "-" + threads
 
@@ -318,12 +316,10 @@ class PyNumpy(PythonPackage):
             The string "nvpl-[name]-[i]lp64-[seq,gomp]"
         """
         lp64_or_ilp64 = "ilp64" if spec.satisfies("+ilp64") else "lp64"
-        if spec.satisfies("threads=none"):
-            threads = "seq"
-        elif spec.satisfies("threads=openmp"):
+        if spec.satisfies("threads=openmp"):
             threads = "gomp"
         else:
-            raise InstallError("Unknown 'threads' variant for NVPL library")
+            threads = "seq"
 
         return f"nvpl-{name}-{lp64_or_ilp64}-{threads}"
 
