@@ -53,7 +53,15 @@ class Realm(CMakePackage, CudaPackage, ROCmPackage):
     for arch in CudaPackage.cuda_arch_values:
         depends_on(f"ucc cuda_arch={arch}", when=f"network=ucx +cuda cuda_arch={arch}")
         depends_on(f"gasnet +cuda cuda_arch={arch}", when=f"network=gasnet +cuda cuda_arch={arch}")
-        depends_on(f"kokkos+cuda cuda_arch={arch}", when=f"+kokkos+cuda cuda_arch={arch}")
+        depends_on(f"kokkos cuda_arch={arch}", when=f"+kokkos+cuda cuda_arch={arch}")
+
+    requires(
+        "^kokkos+cuda",
+        "^kokkos+openacc",
+        policy="one_of",
+        when="+kokkos+cuda",
+        msg="Realm with Kokkos and CUDA requires either the CUDA or OpenACC backend",
+    )
 
     for arch in ROCmPackage.amdgpu_targets:
         depends_on(f"ucc amdgpu_target={arch}", when=f"network=ucx +rocm amdgpu_target={arch}")
@@ -65,7 +73,7 @@ class Realm(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("kokkos@4:", when="+kokkos")
     depends_on("kokkos+openmp", when="+kokkos+openmp")
     depends_on("kokkos~openmp", when="+kokkos~openmp")
-    requires("^kokkos+cuda_lambda", when="+cuda+kokkos ^kokkos@4")
+    requires("^kokkos+cuda_lambda", when="+cuda+kokkos ^kokkos@4 +cuda")
 
     # force same compiler as kokkos if static build
     depends_on("kokkos %gcc", when="+kokkos~shared %gcc")
