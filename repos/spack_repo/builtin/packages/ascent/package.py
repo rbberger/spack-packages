@@ -64,11 +64,18 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
     version("develop", branch="develop", submodules=True)
 
     version(
+        "0.9.6",
+        tag="v0.9.6",
+        commit="76d9405206455b73fec2ad9188206eccff4a0331",
+        submodules=True,
+        preferred=True,
+    )
+
+    version(
         "0.9.5",
         tag="v0.9.5",
         commit="1c32d88b01439263cb4e473756a222824bb75abb",
         submodules=True,
-        preferred=True,
     )
 
     version(
@@ -193,8 +200,10 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("conduit@0.9.1:0.9.3", when="@0.9.3")
     depends_on("conduit@0.9.4", when="@0.9.4")
     depends_on("conduit@0.9.5", when="@0.9.5")
+    depends_on("conduit@0.9.8:", when="@0.9.6")
     depends_on("conduit+fortran", when="+fortran")
     depends_on("conduit+python", when="+python", type=("build", "link", "run"))
+    depends_on("conduit~python", when="~python")
     depends_on("conduit+mpi", when="+mpi")
     depends_on("conduit~mpi", when="~mpi")
 
@@ -207,7 +216,8 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
         depends_on("python+shared", type=("build", "link", "run"))
 
         # https://github.com/Alpine-DAV/ascent/issues/1628
-        depends_on("python@:3.11", type=("build", "link", "run"))
+        depends_on("python@:3.11", when="@:0.9.5", type=("build", "link", "run"))
+        depends_on("python@3.9:", when="@0.9.6:", type=("build", "link", "run"))
 
         extends("python")
         depends_on("py-numpy", type=("build", "link", "run"))
@@ -231,7 +241,8 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
     #######################
     with when("+raja"):
         depends_on("raja")
-        depends_on("raja@2024.02.1:2025.03.1", when="@0.9.3:")
+        depends_on("raja@2024.02.1:2025.03.1", when="@0.9.3:0.9.5")
+        depends_on("raja@2025.09.0:", when="@0.9.6:")
         depends_on("raja+openmp", when="+openmp")
         depends_on("raja~openmp", when="~openmp")
         depends_on("raja+rocm", when="+rocm")
@@ -252,7 +263,7 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
     #######################
     # VTK-m
     #######################
-    with when("+vtkh"):
+    with when("+vtkh @:0.9.4"):
         depends_on("vtk-m +doubleprecision ~64bitids")
         depends_on("vtk-m@2.1:", when="@0.9.3:")
         depends_on("vtk-m@2.0:", when="@0.9.2:")
@@ -291,8 +302,49 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
         depends_on("vtk-m@:1.7", when="@:0.8.0")
         depends_on("vtk-m+testlib", when="@:0.8.0 +test")
 
-    propagate_hip_arch("vtk-m", "+vtkh")
-    propagate_hip_arch("kokkos", "+vtkh")
+    with when("+vtkh @0.9.5:"):
+        # ascent switched from vtk-m to viskores in v0.9.5
+        depends_on("viskores +doubleprecision")
+        depends_on("viskores@1.0.0:")
+        depends_on("viskores~tbb")
+        depends_on("viskores+openmp", when="+openmp")
+        depends_on("viskores~openmp", when="~openmp")
+        depends_on("viskores~cuda", when="~cuda")
+        depends_on("viskores+cuda", when="+cuda")
+        depends_on("viskores~rocm", when="~rocm")
+        depends_on("viskores+fpic")
+        depends_on("viskores+shared", when="+shared")
+        depends_on("viskores~shared+fpic", when="~shared")
+        with when("+rocm"):
+            depends_on("viskores+kokkos+rocm")
+            depends_on("kokkos+rocm")
+
+    # Must stay outside the `with when(...)` block above: the when-stack is also injected into
+    # nested patch() directives, whose condition is then evaluated against viskores (not ascent)
+    # and can never match.
+    depends_on(
+        "viskores",
+        when="+vtkh @0.9.5:",
+        patches=[
+            patch(
+                "https://raw.githubusercontent.com/Alpine-DAV/ascent/refs/tags/v0.9.6/scripts/build_ascent/2026_08_13_viskores-add-plumbing-for-rays-wo-camera.patch",
+                sha256="01f4707e8004abcdbb1745762c091b78a5e65dda7c3c71a744d742d04e87441d",
+            ),
+            patch(
+                "https://raw.githubusercontent.com/Alpine-DAV/ascent/refs/tags/v0.9.6/scripts/build_ascent/2026_09_15_viskores_extrusion_connectivity.patch",
+                sha256="fb43602c824d0332103629cbcc9d640f4cf583778743525932f74bdab0fd4be1",
+            ),
+            patch(
+                "https://raw.githubusercontent.com/Alpine-DAV/ascent/refs/tags/v0.9.6/scripts/build_ascent/2026_09_28_viskores_mir_fixes.patch",
+                sha256="eab0a218c1bbe1e7811cb96cde7fc3ef4fff22e46903b2cc49b94d2e12600d33",
+            ),
+        ],
+    )
+
+    propagate_hip_arch("viskores", "+vtkh @0.9.5:")
+    propagate_hip_arch("kokkos", "+vtkh @0.9.5:")
+    propagate_hip_arch("vtk-m", "+vtkh @:0.9.4")
+    propagate_hip_arch("kokkos", "+vtkh @:0.9.4")
     propagate_hip_arch("raja", "+raja")
     propagate_hip_arch("umpire", "+umpire")
     propagate_cuda_arch("vtk-h", "@:0.8.0 +vtkh")
@@ -354,7 +406,7 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
     conflicts("+fortran", when="+rocm")
     conflicts("+rocm", when="@:0.9.2")
 
-    @when("+rocm")
+    @when("+rocm @:0.9.4")
     def patch(self):
         # VTK-m external interface sets -std=c++14 (VTK-m 2.2), we need
         # to override this since Kokkos requires -std=c++17.
@@ -391,15 +443,28 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
         spec = self.spec
         install_prefix = spec.prefix
         example_src_dir = join_path(install_prefix, "examples", "ascent", "using-with-cmake")
-        print("Checking using-with-cmake example...")
-        with working_dir("check-ascent-using-with-cmake-example", create=True):
-            cmake_args = [
+        if spec.satisfies("@0.9.5:"):
+            # ascent 0.9.5+ builds vtk-h in-tree; viskores is the external
+            tpl_args = ["-DVISKORES_DIR={0}".format(spec["viskores"].prefix)]
+        else:
+            tpl_args = [
                 "-DASCENT_DIR={0}".format(install_prefix),
                 "-DCONDUIT_DIR={0}".format(spec["conduit"].prefix),
                 "-DVTKM_DIR={0}".format(spec["vtk-m"].prefix),
                 "-DVTKH_DIR={0}".format(spec["vtk-h"].prefix),
-                example_src_dir,
             ]
+        print("Checking using-with-cmake example...")
+        with working_dir("check-ascent-using-with-cmake-example", create=True):
+            cmake_args = (
+                [
+                    "-DASCENT_DIR={0}".format(install_prefix),
+                    "-DCONDUIT_DIR={0}".format(spec["conduit"].prefix),
+                ]
+                + tpl_args
+                + [
+                    example_src_dir,
+                ]
+            )
             cmake(*cmake_args)
             make()
             example = Executable("./ascent_render_example")
@@ -702,14 +767,23 @@ class Ascent(CMakePackage, CudaPackage, ROCmPackage):
             else:
                 cfg.write(cmake_cache_entry("VTKH_DIR", spec["vtk-h"].prefix))
 
-            cfg.write("# vtk-m from spack\n")
-            cfg.write(cmake_cache_entry("VTKM_DIR", spec["vtk-m"].prefix))
-
-            if spec.satisfies("+cuda"):
-                cfg.write(cmake_cache_entry("VTKm_ENABLE_CUDA", "ON"))
-                cfg.write(cmake_cache_entry("CMAKE_CUDA_HOST_COMPILER", env["SPACK_CXX"]))
+            if self.spec.satisfies("@0.9.5:"):
+                cfg.write("# viskores from spack\n")
+                cfg.write(cmake_cache_entry("VISKORES_DIR", spec["viskores"].prefix))
+                if spec.satisfies("+cuda"):
+                    cfg.write(cmake_cache_entry("Viskores_ENABLE_CUDA", "ON"))
+                    cfg.write(cmake_cache_entry("CMAKE_CUDA_HOST_COMPILER", env["SPACK_CXX"]))
+                else:
+                    cfg.write(cmake_cache_entry("Viskores_ENABLE_CUDA", "OFF"))
             else:
-                cfg.write(cmake_cache_entry("VTKm_ENABLE_CUDA", "OFF"))
+                cfg.write("# vtk-m from spack\n")
+                cfg.write(cmake_cache_entry("VTKM_DIR", spec["vtk-m"].prefix))
+
+                if spec.satisfies("+cuda"):
+                    cfg.write(cmake_cache_entry("VTKm_ENABLE_CUDA", "ON"))
+                    cfg.write(cmake_cache_entry("CMAKE_CUDA_HOST_COMPILER", env["SPACK_CXX"]))
+                else:
+                    cfg.write(cmake_cache_entry("VTKm_ENABLE_CUDA", "OFF"))
 
         else:
             if self.spec.satisfies("@0.8.1:"):
